@@ -14,13 +14,4 @@
 
 ## 在线预览
 
-访问 GitHub Pages 查看 Demo：https://lizimu0.github.io/zhikong-xitong/
-
-## 项目参数
-
-| 项目 | 说明 |
-|------|------|
-| 预算 | 120 万元 |
-| 周期 | 5 个月 |
-| 团队 | 4 人 |
-| 课程 | IT项目管理综合大作业 |
+https://lizimu0.github.io/zhikong-xitong/
