@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>医疗文书智能质控系统 v2.1</title>
+<style>
+:root{
+  --sidebar-bg:#132f2c;--sidebar-hover:rgba(255,255,255,.07);--sidebar-w:210px;
+  --primary:#0f766e;--primary-light:#f0fdfa;--primary-50:#ccfbf1;--primary-dark:#064e3b;
+  --success:#16a34a;--warning:#d97706;--danger:#dc2626;--info:#0284c7;
+  --bg:#f8f8f6;--card:#fff;--border:#e7e5e4;--text:#1c1917;--text2:#57534e;--text3:#a8a29e;
+  --shadow:0 1px 3px rgba(0,0,0,.06);--radius:6px;--header-h:50px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:13px;overflow-x:hidden}
+
+/* === Sidebar === */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:#fff;border-right:1px solid #e8ecf0;z-index:100;display:flex;flex-direction:column;user-select:none}
+.sidebar-logo{padding:14px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:10px}
+.sidebar-logo .icon{width:34px;height:34px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sidebar-logo .icon svg{width:20px;height:20px}
+.sidebar-logo .txt{color:var(--text)}
+.sidebar-logo .txt .t1{font-size:13px;font-weight:600;color:var(--text)}
+.sidebar-logo .txt .t2{font-size:9px;color:var(--text3);margin-top:1px}
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px 0}
+.nav-grp{padding:0 10px;margin-bottom:4px}
+.nav-grp-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;padding:10px 10px 4px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12.5px;color:#64748b;transition:.15s;margin:1px 0}
+.nav-item:hover{background:#f1f5f9;color:#334155}
+.nav-item.active{background:#eff6ff;color:var(--primary);font-weight:600}
+.nav-item svg{width:16px;height:16px;opacity:.45;flex-shrink:0}
+.nav-item:hover svg{opacity:.65}
+.nav-item.active svg{opacity:.85}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:9px;padding:1px 6px;border-radius:8px;font-weight:700;min-width:18px;text-align:center}
+.sidebar-ft{padding:12px 16px;border-top:1px solid #f1f5f9;color:var(--text3);font-size:10px;line-height:1.6}
+
+/* === Main === */
+.main{margin-left:var(--sidebar-w);min-height:100vh}
+.header{height:var(--header-h);background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:50}
+.breadcrumb{font-size:12px;color:var(--text3)}
+.breadcrumb b{color:var(--text);font-weight:600}
+.header-r{display:flex;align-items:center;gap:14px}
+.header-time{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums}
+.sys-status{display:flex;align-items:center;gap:5px;font-size:10px;padding:3px 9px;border-radius:10px;background:#f0fdf4;color:var(--success);font-weight:500}
+.sys-status .dot{width:5px;height:5px;border-radius:50%;background:var(--success);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.user-chip{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);cursor:pointer;padding:3px 6px;border-radius:5px}
+.user-chip:hover{background:var(--bg)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+
+/* === Content === */
+.content{padding:16px 20px}
+.page{display:none}.page.active{display:block}
+.pg-title{font-size:16px;font-weight:700;margin-bottom:3px}
+.pg-desc{font-size:11px;color:var(--text3);margin-bottom:16px}
+
+/* === Common === */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px}
+.card-h{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-h h3{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.card-h h3 .bar{width:3px;height:14px;border-radius:2px;background:var(--primary)}
+.card-b{padding:14px 16px}
+.card-b.no-pad{padding:0}
+.card-acts{display:flex;gap:6px}
+.cbtn{font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:#fff;color:var(--text2);cursor:pointer;transition:.12s}
+.cbtn:hover{border-color:var(--primary);color:var(--primary)}
+.cbtn.on{background:var(--primary-light);border-color:var(--primary);color:var(--primary);font-weight:500}
+
+/* Grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+.g4{display:grid;grid-template-columns:1fr 320px;gap:14px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:16px}
+.st{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
+.st::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--c,var(--primary))}
+.st-l{font-size:10px;color:var(--text3);margin-bottom:5px}
+.st-v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.st-s{font-size:10px;margin-top:3px;color:var(--text3)}
+.st-s .up{color:var(--success)}.st-s .dn{color:var(--danger)}
+
+/* Dim list */
+.dim-item{display:flex;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.dim-item:last-child{border-bottom:none}
+.dim-ico{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;margin-right:10px;flex-shrink:0}
+.dim-nm{font-size:12px;font-weight:500;margin-bottom:3px}
+.dim-bar{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;width:100px}
+.dim-fill{height:100%;border-radius:3px}
+.dim-sc{font-size:16px;font-weight:700;margin-left:10px;min-width:32px;text-align:right}
+.dim-tr{font-size:10px;margin-left:6px}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:9px 12px;background:#fafaf9;font-weight:600;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2)}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--border)}
+.tbl tr:hover td{background:#fafaf9}
+.rk{display:inline-flex;width:20px;height:20px;border-radius:5px;font-size:10px;font-weight:700;align-items:center;justify-content:center}
+.rk.g{background:#fef9c3;color:#a16207}.rk.s{background:#f1f5f9;color:#475569}.rk.b{background:#ffedd5;color:#c2410c}.rk.n{background:var(--bg);color:var(--text3)}
+.rate{font-weight:600;font-variant-numeric:tabular-nums}
+.rate.ok{color:var(--success)}.rate.mid{color:var(--warning)}.rate.lo{color:var(--danger)}
+.tr-up{color:var(--success);font-size:10px}.tr-dn{color:var(--danger);font-size:10px}
+.pbar{width:44px;height:4px;background:var(--bg);border-radius:2px;overflow:hidden;display:inline-block;vertical-align:middle;margin-left:5px}
+.pbar-f{height:100%;border-radius:2px}
+
+/* Issue cards */
+.issue-stream{max-height:420px;overflow-y:auto;padding-right:2px}
+.issue-stream::-webkit-scrollbar{width:3px}
+.issue-stream::-webkit-scrollbar-thumb{background:#d6d3d1;border-radius:2px}
+.iss{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:7px;cursor:default;transition:.15s}
+.iss:hover{border-color:var(--primary)}
+.iss.sv-high{border-left:3px solid var(--danger)}.iss.sv-med{border-left:3px solid var(--warning)}.iss.sv-low{border-left:3px solid var(--info)}
+.iss.flash{animation:issFlash 2.5s ease-out}
+@keyframes issFlash{0%{background:#fefce8;border-color:var(--warning)}100%{background:#fff;border-color:var(--border)}}
+.iss-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.iss-id{font-size:11px;font-weight:600;color:var(--primary)}.iss-tm{font-size:10px;color:var(--text3)}
+.iss-desc{font-size:12px;line-height:1.5;margin-bottom:5px;color:var(--text)}
+.iss-meta{display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:500}
+.t-dept{background:#f0fdfa;color:#0f766e}.t-doc{background:#f0fdf4;color:#166534}.t-bed{background:#faf5ff;color:#7c3aed}
+.t-sv-high{background:#fef2f2;color:#dc2626}.t-sv-med{background:#fffbeb;color:#d97706}.t-sv-low{background:#f0f9ff;color:#0284c7}
+.t-type{background:#f5f5f4;color:var(--text2)}
+
+/* Filters */
+.flt-sec{margin-bottom:14px}
+.flt-title{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{padding:4px 9px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:10px;cursor:pointer;transition:.12s;color:var(--text2)}
+.chip:hover{border-color:var(--primary);color:var(--primary)}
+.chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.flt-sel{width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:11px;background:#fff;color:var(--text);outline:none}
+.flt-sel:focus{border-color:var(--primary)}
+.flt-sum{font-size:10px;color:var(--text3);padding:8px 0;border-top:1px solid var(--border);margin-top:10px}
+.flt-sum b{color:var(--text);font-weight:600}
+
+/* Toast */
+.toast-box{position:fixed;top:60px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px}
+.toast{padding:8px 14px;border-radius:var(--radius);background:var(--card);border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,.1);font-size:11px;display:flex;align-items:center;gap:7px;animation:tIn .3s;max-width:300px}
+.toast.out{animation:tOut .3s forwards}
+@keyframes tIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes tOut{from{opacity:1;transform:none}to{opacity:0;transform:translateX(30px)}}
+.toast-ico{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0}
+.toast-ico.err{background:var(--danger)}.toast-ico.warn{background:var(--warning)}.toast-ico.info{background:var(--info)}
+
+/* === Page-specific === */
+.search-bar{display:flex;gap:8px;margin-bottom:14px}
+.search-bar input{flex:1;padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:12px;background:#fff;outline:none}
+.search-bar input:focus{border-color:var(--primary)}
+.search-bar select{padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:11px;background:#fff}
+.btn{padding:7px 16px;border-radius:var(--radius);border:1px solid var(--border);font-size:11px;cursor:pointer;transition:.12s;font-weight:500}
+.btn-p{background:var(--primary);color:#fff;border-color:var(--primary)}.btn-p:hover{background:var(--primary-dark)}
+.btn-o{background:#fff;color:var(--text2)}.btn-o:hover{border-color:var(--primary);color:var(--primary)}
+.btn-sm{padding:3px 8px;font-size:10px;border-radius:3px}
+.btn-link{background:none;border:none;color:var(--primary);cursor:pointer;font-size:11px;text-decoration:underline;padding:0}
+
+.st-badge{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:500}
+.st-pending{background:#fef3c7;color:#92400e}.st-done{background:#dcfce7;color:#166534}.st-fixing{background:#dbeafe;color:#1e40af}
+
+/* Toggle switch */
+.toggle{position:relative;width:36px;height:20px;display:inline-block}
+.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;inset:0;background:#d6d3d1;border-radius:10px;cursor:pointer;transition:.2s}
+.toggle .slider::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;left:2px;top:2px;transition:.2s}
+.toggle input:checked+.slider{background:var(--primary)}
+.toggle input:checked+.slider::before{transform:translateX(16px)}
+
+/* Report cards */
+.rpt-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;transition:.15s}
+.rpt-card:hover{border-color:var(--primary);background:var(--primary-light)}
+.rpt-info h4{font-size:13px;font-weight:600;margin-bottom:3px}
+.rpt-info p{font-size:11px;color:var(--text3)}
+
+/* User card */
+.usr-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px}
+.usr-card .av{width:34px;height:34px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+.usr-info{flex:1;font-size:12px}
+.usr-info .nm{font-weight:600}.usr-info .rl{font-size:10px;color:var(--text3);margin-top:1px}
+
+/* Monitor live cards */
+.live-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;font-size:12px;transition:.15s}
+.live-row:hover{background:#fafaf9}
+.live-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.live-dot.ok{background:var(--success)}.live-dot.warn{background:var(--warning)}.live-dot.err{background:var(--danger)}
+.live-bar{flex:1;height:4px;background:var(--bg);border-radius:2px;overflow:hidden}
+.live-fill{height:100%;border-radius:2px;transition:width .5s}
+
+/* Modal */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--card);border-radius:8px;width:440px;max-width:90vw;box-shadow:0 8px 30px rgba(0,0,0,.15);animation:modalIn .2s}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.modal-h{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-h h3{font-size:14px;font-weight:600}
+.modal-x{width:28px;height:28px;border-radius:50%;border:none;background:none;cursor:pointer;font-size:16px;color:var(--text3);display:flex;align-items:center;justify-content:center}
+.modal-x:hover{background:var(--bg);color:var(--text)}
+.modal-b{padding:18px}
+.modal-f{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.mf-label{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px}
+.mf-input{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none;margin-bottom:12px}
+.mf-input:focus{border-color:var(--primary)}
+textarea.mf-input{min-height:60px;resize:vertical;font-family:inherit}
+.mf-row{display:flex;gap:10px}
+.mf-row>div{flex:1}
+.mf-detail{font-size:12px;color:var(--text);line-height:1.6;padding:10px 12px;background:var(--bg);border-radius:4px;margin-bottom:12px}
+.mf-detail b{color:var(--primary);font-weight:600}
+
+canvas{display:block;max-width:100%}
+@media(max-width:1200px){.stats{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ===== Sidebar ===== -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 4v16M4 12h16"/></svg></div>
+    <div class="txt"><div class="t1">智能质控系统</div><div class="t2">Medical QC Platform</div></div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-grp">
+      <div class="nav-grp-label">质控中心</div>
+      <div class="nav-item active" data-page="dashboard" onclick="go(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        质控总览
+      </div>
+      <div class="nav-item" data-page="monitor" onclick="go(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        实时监控
+        <span class="nav-badge" id="navBadge">3</span>
+      </div>
+      <div class="nav-item" data-page="ledger" onclick="go(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        问题台账
+      </div>
+    </div>
+    <div class="nav-grp">
+      <div class="nav-grp-label">分析报表</div>
+      <div class="nav-item" data-page="analysis" onclick="go(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        科室分析
+      </div>
+      <div class="nav-item" data-page="report" onclick="go(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        报表导出
+      </div>
+    </div>
+    <div class="nav-grp">
+      <div class="nav-grp-label">系统管理</div>
+      <div class="nav-item" data-page="rules" onclick="go(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3M6.5 9.5l5.5 5.5 5.5-5.5"/><rect x="2" y="17" width="20" height="4" rx="1"/></svg>
+        规则配置
+      </div>
+      <div class="nav-item" data-page="users" onclick="go(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        权限管理
+      </div>
+    </div>
+  </div>
+  <div class="sidebar-ft">
+    <div>XX大学附属第一医院</div>
+    <div>v2.1.0 · 信息科维护</div>
+  </div>
+</div>
+
+<!-- ===== Main ===== -->
+<div class="main">
+  <div class="header">
+    <div class="breadcrumb" id="breadcrumb">质控中心 / <b>质控总览</b></div>
+    <div class="header-r">
+      <div class="header-time" id="hTime"></div>
+      <div class="sys-status"><span class="dot"></span>FHIR 正常 · LLM 就绪</div>
+      <div class="user-chip"><div class="avatar">王</div><div><div style="font-weight:600;color:var(--text)">王质控</div><div style="font-size:9px">医务科</div></div></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+<!-- ======== PAGE: 质控总览 ======== -->
+<div id="pg-dashboard" class="page active">
+  <div class="pg-title">质控总览看板</div>
+  <div class="pg-desc">实时监测医疗文书书写质量 · 完整性 / 合理性 / 规范性 / 准确性 / 时效性 · 更新于 <span id="uTime">--:--</span></div>
+  <div class="stats">
+    <div class="st" style="--c:#0f766e"><div class="st-l">今日质检病历</div><div class="st-v" style="color:var(--primary)">127</div><div class="st-s"><span class="up">&#9650; 12</span> vs 昨日</div></div>
+    <div class="st" style="--c:var(--danger)"><div class="st-l">发现问题数</div><div class="st-v" style="color:var(--danger)">23</div><div class="st-s"><span class="dn">&#9650; 5</span> 需关注</div></div>
+    <div class="st" style="--c:var(--success)"><div class="st-l">质控通过率</div><div class="st-v" style="color:var(--success)">81.9%</div><div class="st-s"><span class="up">&#9650; 1.9%</span> vs 昨日</div></div>
+    <div class="st" style="--c:var(--warning)"><div class="st-l">实时质控响应</div><div class="st-v" style="color:var(--warning)">1.6s</div><div class="st-s"><span class="up">&#9660; 0.2s</span> 达标</div></div>
+    <div class="st" style="--c:#7c3aed"><div class="st-l">待复核病历</div><div class="st-v" style="color:#7c3aed">8</div><div class="st-s">其中 3 份严重</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-h"><h3><span class="bar"></span>五维质检评分</h3><div class="card-acts"><button class="cbtn on" onclick="tBtn(this)">本月</button><button class="cbtn" onclick="tBtn(this)">本季度</button></div></div><div class="card-b"><canvas id="radarCv" height="220"></canvas></div></div>
+    <div class="card"><div class="card-h"><h3><span class="bar"></span>维度评分详情</h3></div><div class="card-b" id="scoreList"></div></div>
+  </div>
+  <div class="card"><div class="card-h"><h3><span class="bar"></span>质控趋势（近7天）</h3><div class="card-acts"><button class="cbtn on" onclick="tBtn(this)">质检量+通过率</button></div></div><div class="card-b"><canvas id="lineCv" height="170"></canvas></div></div>
+  <div class="card"><div class="card-h"><h3><span class="bar"></span>科室质控排行</h3><div class="card-acts"><button class="cbtn on" onclick="tBtn(this)">今日</button><button class="cbtn" onclick="tBtn(this)">本周</button><button class="cbtn" onclick="tBtn(this)">本月</button></div></div><div class="card-b no-pad"><table class="tbl"><thead><tr><th style="width:44px">排名</th><th>科室</th><th>质检数</th><th>通过数</th><th>通过率</th><th style="width:80px">合规度</th><th>趋势</th><th>高频问题</th></tr></thead><tbody id="deptBody"></tbody></table></div></div>
+  <div class="g4">
+    <div class="card"><div class="card-h"><h3><span class="bar" style="background:var(--danger)"></span>实时问题流 <span class="sys-status" style="margin-left:6px;font-size:9px"><span class="dot"></span>LIVE</span></h3><span style="font-size:10px;color:var(--text3)" id="issCnt">共 0 条</span></div><div class="card-b"><div class="issue-stream" id="issueList"></div></div></div>
+    <div class="card"><div class="card-h"><h3><span class="bar"></span>筛选与统计</h3></div><div class="card-b" id="filterPanel"></div></div>
+  </div>
+</div>
+
+<!-- ======== PAGE: 实时监控 ======== -->
+<div id="pg-monitor" class="page">
+  <div class="pg-title">实时监控面板</div>
+  <div class="pg-desc">在院病历书写质量实时监测与预警 · 自动刷新间隔 8秒</div>
+  <div class="stats" style="grid-template-columns:repeat(4,1fr)">
+    <div class="st" style="--c:var(--primary)"><div class="st-l">当前在院病历</div><div class="st-v" style="color:var(--primary)">342</div><div class="st-s">实时监控中</div></div>
+    <div class="st" style="--c:var(--success)"><div class="st-l">正常病历</div><div class="st-v" style="color:var(--success)">319</div><div class="st-s">93.3%</div></div>
+    <div class="st" style="--c:var(--warning)"><div class="st-l">预警病历</div><div class="st-v" style="color:var(--warning)">15</div><div class="st-s">待处理</div></div>
+    <div class="st" style="--c:var(--danger)"><div class="st-l">严重问题</div><div class="st-v" style="color:var(--danger)">8</div><div class="st-s">需立即复核</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-h"><h3><span class="bar"></span>系统运行状态</h3></div><div class="card-b" id="sysHealth"></div></div>
+    <div class="card"><div class="card-h"><h3><span class="bar"></span>科室实时概况</h3></div><div class="card-b" id="deptLive"></div></div>
+  </div>
+  <div class="card"><div class="card-h"><h3><span class="bar" style="background:var(--danger)"></span>实时预警列表</h3><div class="card-acts"><button class="cbtn on" onclick="tBtn(this)">全部</button><button class="cbtn" onclick="tBtn(this)">仅严重</button></div></div><div class="card-b" id="monitorList"></div></div>
+</div>
+
+<!-- ======== PAGE: 问题台账 ======== -->
+<div id="pg-ledger" class="page">
+  <div class="pg-title">问题台账管理</div>
+  <div class="pg-desc">全部质控问题的跟踪管理 · 支持搜索、筛选、导出</div>
+  <div class="search-bar">
+    <input type="text" placeholder="搜索病历号 / 科室 / 描述关键词..." id="ledgerSearch" oninput="renderLedger()">
+    <select class="flt-sel" id="ledgerStatus" onchange="renderLedger()" style="width:110px"><option value="all">全部状态</option><option value="pending">待复核</option><option value="fixing">整改中</option><option value="done">已闭环</option></select>
+    <select class="flt-sel" id="ledgerSev" onchange="renderLedger()" style="width:100px"><option value="all">全部级别</option><option value="high">严重</option><option value="med">中等</option><option value="low">轻微</option></select>
+    <button class="btn btn-o" onclick="exportFile('问题台账')">导出 Excel</button>
+  </div>
+  <div class="card"><div class="card-b no-pad"><table class="tbl"><thead><tr><th>病历号</th><th>科室</th><th>主管医生</th><th>问题类型</th><th>级别</th><th>问题描述</th><th>状态</th><th>操作</th></tr></thead><tbody id="ledgerBody"></tbody></table></div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text3);margin-top:8px"><span id="ledgerInfo">共 0 条记录</span><div id="ledgerPaging" style="display:flex;gap:4px"></div></div>
+</div>
+
+<!-- ======== PAGE: 科室分析 ======== -->
+<div id="pg-analysis" class="page">
+  <div class="pg-title">科室质控分析</div>
+  <div class="pg-desc">各科室质控数据对比 · 2026年7月</div>
+  <div class="g2">
+    <div class="card"><div class="card-h"><h3><span class="bar"></span>科室通过率对比</h3></div><div class="card-b"><canvas id="barCv" height="240"></canvas></div></div>
+    <div class="card"><div class="card-h"><h3><span class="bar"></span>问题类型分布</h3></div><div class="card-b"><canvas id="pieCv" height="240"></canvas></div></div>
+  </div>
+  <div class="card"><div class="card-h"><h3><span class="bar"></span>科室详细数据</h3></div><div class="card-b no-pad"><table class="tbl"><thead><tr><th>科室</th><th>质检总数</th><th>通过数</th><th>通过率</th><th>严重问题</th><th>中等问题</th><th>轻微问题</th><th>环比上月</th></tr></thead><tbody id="analysisBody"></tbody></table></div></div>
+</div>
+
+<!-- ======== PAGE: 报表导出 ======== -->
+<div id="pg-report" class="page">
+  <div class="pg-title">报表导出中心</div>
+  <div class="pg-desc">生成并下载多维度质控分析报告</div>
+  <div class="rpt-card"><div class="rpt-info"><h4>质控月度报告</h4><p>综合本月全部质控数据、趋势分析、科室排行 · PDF / Word</p></div><button class="btn btn-p" onclick="genReport('monthly')">生成报告</button></div>
+  <div class="rpt-card"><div class="rpt-info"><h4>科室质控统计</h4><p>按科室维度的质检量、通过率、问题分布 · Excel</p></div><button class="btn btn-p" onclick="exportFile('科室质控统计')">导出 Excel</button></div>
+  <div class="rpt-card"><div class="rpt-info"><h4>医生个人评分卡</h4><p>每位医生的五维评分、问题频次、改进建议 · PDF</p></div><button class="btn btn-p" onclick="genReport('doctor')">生成 PDF</button></div>
+  <div class="rpt-card"><div class="rpt-info"><h4>问题台账明细</h4><p>全部质控问题清单，含状态、整改记录 · Excel</p></div><button class="btn btn-p" onclick="exportFile('问题台账明细')">导出 Excel</button></div>
+  <div class="card" style="margin-top:14px"><div class="card-h"><h3><span class="bar"></span>导出历史</h3></div><div class="card-b no-pad"><table class="tbl"><thead><tr><th>报表名称</th><th>导出时间</th><th>格式</th><th>操作人</th><th>操作</th></tr></thead>
+    <tbody>
+      <tr><td>2026年6月质控月报</td><td>2026-07-01 09:15</td><td>PDF</td><td>王质控</td><td><button class="btn-link">下载</button></td></tr>
+      <tr><td>2026年6月科室统计</td><td>2026-07-01 09:20</td><td>Excel</td><td>王质控</td><td><button class="btn-link">下载</button></td></tr>
+      <tr><td>Q2季度分析报告</td><td>2026-07-02 14:30</td><td>PDF</td><td>张主任</td><td><button class="btn-link">下载</button></td></tr>
+    </tbody></table></div></div>
+</div>
+
+<!-- ======== PAGE: 规则配置 ======== -->
+<div id="pg-rules" class="page">
+  <div class="pg-title">质控规则配置</div>
+  <div class="pg-desc">配置和维护五维质检检查规则与判定阈值</div>
+  <div class="card"><div class="card-h"><h3><span class="bar"></span>检查规则开关</h3></div><div class="card-b" id="dimToggles"></div></div>
+  <div class="card"><div class="card-h"><h3><span class="bar"></span>阈值参数</h3><div class="card-acts"><button class="btn btn-p btn-sm" onclick="saveRuleConfig()">保存配置</button></div></div><div class="card-b no-pad"><table class="tbl"><thead><tr><th>规则名称</th><th>触发条件</th><th>严重级别</th><th>当前阈值</th><th>操作</th></tr></thead><tbody id="ruleTable"></tbody></table></div></div>
+</div>
+
+<!-- ======== PAGE: 权限管理 ======== -->
+<div id="pg-users" class="page">
+  <div class="pg-title">权限管理</div>
+  <div class="pg-desc">系统用户角色与数据访问权限配置</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:12px;color:var(--text2)" id="userCount">共 6 个用户</div><button class="btn btn-p" onclick="addUser()">+ 添加用户</button></div>
+  <div class="card"><div class="card-b no-pad"><table class="tbl"><thead><tr><th>用户</th><th>科室</th><th>角色</th><th>权限范围</th><th>最后登录</th><th>状态</th><th>操作</th></tr></thead><tbody id="userBody"></tbody></table></div></div>
+  <div class="card" style="margin-top:14px"><div class="card-h"><h3><span class="bar"></span>角色权限矩阵</h3></div><div class="card-b no-pad"><table class="tbl"><thead><tr><th>功能模块</th><th>管理员</th><th>质控员</th><th>科室主任</th><th>临床医生</th></tr></thead>
+    <tbody>
+      <tr><td>质控总览</td><td style="color:var(--success)">&#10003; 完整</td><td style="color:var(--success)">&#10003; 完整</td><td style="color:var(--success)">&#10003; 本科室</td><td style="color:var(--text3)">&#10003; 只读</td></tr>
+      <tr><td>实时监控</td><td style="color:var(--success)">&#10003; 完整</td><td style="color:var(--success)">&#10003; 完整</td><td style="color:var(--success)">&#10003; 本科室</td><td style="color:var(--danger)">&#10007;</td></tr>
+      <tr><td>问题台账</td><td style="color:var(--success)">&#10003; 完整</td><td style="color:var(--success)">&#10003; 完整</td><td style="color:var(--success)">&#10003; 本科室</td><td style="color:var(--success)">&#10003; 本人</td></tr>
+      <tr><td>规则配置</td><td style="color:var(--success)">&#10003; 完整</td><td style="color:var(--danger)">&#10007;</td><td style="color:var(--danger)">&#10007;</td><td style="color:var(--danger)">&#10007;</td></tr>
+      <tr><td>权限管理</td><td style="color:var(--success)">&#10003; 完整</td><td style="color:var(--danger)">&#10007;</td><td style="color:var(--danger)">&#10007;</td><td style="color:var(--danger)">&#10007;</td></tr>
+    </tbody></table></div></div>
+</div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div id="modalBox"></div>
+<div class="toast-box" id="toasts"></div>
+
+<script>
+// ===== Data =====
+var dims=[
+  {n:'完整性',s:92,ico:'&#9745;',clr:'#16a34a',bg:'#f0fdf4',tr:'+2',sub:'必填字段、附件齐全'},
+  {n:'合理性',s:85,ico:'&#9878;',clr:'#d97706',bg:'#fffbeb',tr:'-1',sub:'诊疗方案与诊断匹配'},
+  {n:'规范性',s:88,ico:'&#9998;',clr:'#0f766e',bg:'#f0fdfa',tr:'+3',sub:'术语标准、格式统一'},
+  {n:'准确性',s:79,ico:'&#10004;',clr:'#dc2626',bg:'#fef2f2',tr:'-2',sub:'数据一致、无矛盾'},
+  {n:'时效性',s:95,ico:'&#9200;',clr:'#7c3aed',bg:'#faf5ff',tr:'+1',sub:'记录及时、时限达标'}
+];
+var depts=[
+  {d:'骨科',t:34,p:31,r:91.2,tr:'up',m:'手术记录缺内固定型号',h:1,m2:3,l:2},
+  {d:'心血管内科',t:28,p:24,r:85.7,tr:'up',m:'用药方案与诊断不符',h:2,m2:2,l:1},
+  {d:'呼吸与危重症医学科',t:25,p:22,r:88.0,tr:'down',m:'ICD-10编码不规范',h:1,m2:1,l:3},
+  {d:'神经内科',t:22,p:17,r:77.3,tr:'down',m:'检验与影像结论矛盾',h:3,m2:2,l:1},
+  {d:'普通外科',t:18,p:15,r:83.3,tr:'up',m:'术后病程记录超时',h:1,m2:2,l:2},
+  {d:'内分泌科',t:16,p:14,r:87.5,tr:'up',m:'血糖监测记录不完整',h:0,m2:2,l:1},
+  {d:'妇产科',t:14,p:13,r:92.9,tr:'up',m:'产程记录时效',h:0,m2:1,l:1},
+  {d:'儿科',t:12,p:10,r:83.3,tr:'down',m:'医嘱剂量合理性',h:2,m2:1,l:1}
+];
+var trend=[{d:'06-28',c:98,r:80.1},{d:'06-29',c:105,r:81.5},{d:'06-30',c:112,r:79.8},{d:'07-01',c:118,r:82.3},{d:'07-02',c:121,r:83.1},{d:'07-03',c:127,r:82.3},{d:'07-04',c:127,r:81.9}];
+var docs=['张明辉','李秀英','王建国','陈丽华','刘志强','赵雅琴','孙伟','周小红','吴大伟','郑丽萍'];
+var beds=['12床','3床','27床','8床','15床','6床','22床','31床','9床','18床'];
+var issues=[
+  {id:'MR-20260704-0128',dp:'骨科',doc:'张明辉',bed:'12床',tp:'完整性',sv:'high',ds:'出院小结缺少术后康复指导内容，未记录内固定物型号及取出时间建议',tm:1,st:'pending'},
+  {id:'MR-20260704-0129',dp:'心血管内科',doc:'李秀英',bed:'3床',tp:'合理性',sv:'med',ds:'诊断为高血压II级，但用药方案含III级推荐药物硝普钠，建议复核',tm:3,st:'pending'},
+  {id:'MR-20260704-0130',dp:'呼吸与危重症医学科',doc:'王建国',bed:'27床',tp:'规范性',sv:'low',ds:'出院诊断"肺部感染"未使用标准ICD-10编码J18.9',tm:5,st:'done'},
+  {id:'MR-20260704-0131',dp:'神经内科',doc:'陈丽华',bed:'8床',tp:'准确性',sv:'high',ds:'检验报告血清钠135mmol/L，但病程记录描述为"血钠正常"，与影像报告脑水肿描述矛盾',tm:8,st:'fixing'},
+  {id:'MR-20260704-0132',dp:'普通外科',doc:'刘志强',bed:'15床',tp:'时效性',sv:'med',ds:'术后首次病程记录在手术结束后11小时完成，超出规定时限(8小时)',tm:12,st:'fixing'},
+  {id:'MR-20260704-0133',dp:'骨科',doc:'赵雅琴',bed:'6床',tp:'完整性',sv:'med',ds:'手术记录缺少术中使用C臂机透视的影像存档关联',tm:15,st:'done'},
+  {id:'MR-20260704-0134',dp:'心血管内科',doc:'孙伟',bed:'22床',tp:'规范性',sv:'low',ds:'病程记录中日期书写格式不统一（"2026.7.3"与"2026-07-03"混用）',tm:18,st:'done'},
+  {id:'MR-20260704-0135',dp:'神经内科',doc:'周小红',bed:'31床',tp:'合理性',sv:'high',ds:'主诉"头痛3天"但检查项目含全腹CT，关联性不足，建议说明检查理由',tm:22,st:'pending'}
+];
+var newPool=[
+  {dp:'骨科',tp:'完整性',sv:'med',ds:'出院诊断缺少术后并发症描述，未记录DVT预防措施'},
+  {dp:'呼吸与危重症医学科',tp:'准确性',sv:'high',ds:'肺功能FEV1录入值2.3L与检查报告原始数据1.8L不符'},
+  {dp:'心血管内科',tp:'时效性',sv:'low',ds:'心内科会诊意见在会诊申请后26小时完成，超出24h时限'},
+  {dp:'普通外科',tp:'合理性',sv:'med',ds:'术前检查含甲状腺功能全套，但手术类型为腹腔镜胆囊切除，关联性待说明'},
+  {dp:'神经内科',tp:'规范性',sv:'low',ds:'神经系统查体"肌力V级"书写为"肌力5级"，未使用罗马数字标准'},
+  {dp:'骨科',tp:'准确性',sv:'high',ds:'影像报告示"左胫骨平台骨折"，手术记录写为"右胫骨"，左右侧别矛盾'},
+  {dp:'内分泌科',tp:'完整性',sv:'med',ds:'糖尿病酮症酸中毒病历缺少24小时出入量记录'},
+  {dp:'妇产科',tp:'时效性',sv:'low',ds:'产程图第二产程记录间隔超过30分钟'},
+  {dp:'儿科',tp:'合理性',sv:'high',ds:'患儿体重15kg，医嘱头孢曲松剂量2g，超出体重推荐剂量范围'}
+];
+var cnt=136,filterD='all',filterT='all',filterS='all';
+var monitorSevFilter='all';
+var ledgerPage=1,ledgerPerPage=8;
+var rules=[
+  {n:'出院小结完整性',c:'必填项缺失检测',sv:'high',v:'必填项 >= 8项'},
+  {n:'ICD-10编码校验',c:'诊断术语非标准编码',sv:'low',v:'匹配率 >= 95%'},
+  {n:'用药合理性',c:'药品与诊断不匹配',sv:'high',v:'关联度 >= 0.8'},
+  {n:'术后记录时限',c:'手术后首次病程超时',sv:'med',v:'<= 8小时'},
+  {n:'检验-影像一致性',c:'检验数值与影像描述矛盾',sv:'high',v:'矛盾率 <= 2%'},
+  {n:'日期格式统一',c:'多种日期格式混用',sv:'low',v:'统一率 100%'},
+  {n:'签名完整性',c:'电子签名缺失或无效',sv:'med',v:'签名率 100%'},
+  {n:'医嘱剂量校验',c:'药品剂量超出推荐范围',sv:'high',v:'偏离率 <= 1%'}
+];
+var users=[
+  {n:'王质控',d:'医务科',r:'质控员',p:'全院数据',lt:'2026-07-04 08:15',on:true},
+  {n:'张主任',d:'医务科',r:'管理员',p:'全部权限',lt:'2026-07-04 09:02',on:true},
+  {n:'李秀英',d:'心血管内科',r:'科室主任',p:'本科室数据',lt:'2026-07-03 17:45',on:true},
+  {n:'张明辉',d:'骨科',r:'临床医生',p:'本人病历',lt:'2026-07-04 07:30',on:true},
+  {n:'陈丽华',d:'神经内科',r:'临床医生',p:'本人病历',lt:'2026-07-03 16:20',on:false},
+  {n:'刘志强',d:'普通外科',r:'临床医生',p:'本人病历',lt:'2026-07-02 14:10',on:false}
+];
+
+// ===== Navigation =====
+var pgMap={dashboard:['质控中心','质控总览'],monitor:['质控中心','实时监控'],ledger:['质控中心','问题台账'],analysis:['分析报表','科室分析'],report:['分析报表','报表导出'],rules:['系统管理','规则配置'],users:['系统管理','权限管理']};
+var rendered={dashboard:false,monitor:false,ledger:false,analysis:false,report:false,rules:false,users:false};
+function go(el){
+  var pg=el.getAttribute('data-page');
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
+  var target=document.getElementById('pg-'+pg);
+  if(target)target.classList.add('active');
+  var m=pgMap[pg];
+  document.getElementById('breadcrumb').innerHTML=m[0]+' / <b>'+m[1]+'</b>';
+  if(pg==='dashboard'){initCanvas();drawRadar();drawLine()}
+  if(pg==='monitor'&&!rendered.monitor){renderMonitor();rendered.monitor=true}
+  if(pg==='ledger'&&!rendered.ledger){renderLedger();rendered.ledger=true}
+  if(pg==='analysis'&&!rendered.analysis){renderAnalysis();rendered.analysis=true}
+  if(pg==='rules'&&!rendered.rules){renderRules();rendered.rules=true}
+  if(pg==='users'&&!rendered.users){renderUsers();rendered.users=true}
+  if(pg==='report'){renderReportHistory()}
+}
+
+// ===== Clock =====
+function pad(n){return n<10?'0'+n:''+n}
+function updClock(){var d=new Date(),s=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());document.getElementById('hTime').textContent=s;var u=document.getElementById('uTime');if(u)u.textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())}
+updClock();setInterval(updClock,1000);
+
+// ===== Toast =====
+function showToast(msg,type){
+  var c=document.getElementById('toasts'),ic=type==='high'||type==='err'?'err':type==='med'||type==='warn'?'warn':'info';
+  var ch=type==='high'||type==='err'?'!':type==='med'||type==='warn'?'!':'i';
+  var t=document.createElement('div');t.className='toast';
+  t.innerHTML='<div class="toast-ico '+ic+'">'+ch+'</div><div>'+msg+'</div>';
+  c.appendChild(t);
+  setTimeout(function(){t.classList.add('out');setTimeout(function(){t.remove()},300)},4000);
+}
+
+// ===== Modal =====
+function openModal(title,body,footer){
+  document.getElementById('modalBox').innerHTML='<div class="modal-mask" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-h"><h3>'+title+'</h3><button class="modal-x" onclick="closeModal()">&#10005;</button></div><div class="modal-b">'+body+'</div>'+(footer?'<div class="modal-f">'+footer+'</div>':'')+'</div></div>';
+}
+function closeModal(){document.getElementById('modalBox').innerHTML=''}
+
+// ===== Monitor Confirm =====
+function confirmAlert(issueId){
+  for(var i=0;i<issues.length;i++){
+    if(issues[i].id===issueId){issues[i].st='done';break}
+  }
+  renderMonitor();
+  showToast(issueId+' 已确认闭环','info');
+}
+
+// ===== Ledger Review =====
+function reviewIssue(idx){
+  var q=(document.getElementById('ledgerSearch')||{}).value||'';
+  var sf=(document.getElementById('ledgerStatus')||{}).value||'all';
+  var svf=(document.getElementById('ledgerSev')||{}).value||'all';
+  var f=issues.filter(function(i){
+    if(q&&i.id.indexOf(q)<0&&i.dp.indexOf(q)<0&&i.ds.indexOf(q)<0)return false;
+    if(sf!=='all'&&i.st!==sf)return false;
+    if(svf!=='all'&&i.sv!==svf)return false;
+    return true;
+  });
+  var issue=f[idx];
+  if(!issue)return;
+  var body='<div class="mf-detail"><b>'+issue.id+'</b> · '+issue.dp+' · '+issue.doc+' · '+issue.bed+'<br>'+issue.ds+'</div>';
+  body+='<div class="mf-label">流转状态</div><div class="mf-row"><div><select class="mf-input" id="rvStatus"><option value="fixing"'+(issue.st==='fixing'?' selected':'')+'>整改中</option><option value="done"'+(issue.st==='done'?' selected':'')+'>已闭环</option></select></div></div>';
+  body+='<div class="mf-label">复核意见</div><textarea class="mf-input" id="rvNote" placeholder="请输入复核意见...">已确认问题，'+(issue.st==='done'?'整改完毕':'正在整改')+'</textarea>';
+  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="submitReview(\''+issue.id+'\')">确认提交</button>';
+  openModal('问题复核 — '+issue.id,body,footer);
+}
+function submitReview(id){
+  var st=document.getElementById('rvStatus').value;
+  var note=document.getElementById('rvNote').value;
+  for(var i=0;i<issues.length;i++){
+    if(issues[i].id===id){issues[i].st=st;issues[i].reviewNote=note;break}
+  }
+  closeModal();
+  renderLedger();
+  showToast(id+' 已'+(st==='done'?'闭环':'转入整改'),'info');
+}
+
+// ===== Ledger Delete =====
+function deleteIssue(idx){
+  var q=(document.getElementById('ledgerSearch')||{}).value||'';
+  var sf=(document.getElementById('ledgerStatus')||{}).value||'all';
+  var svf=(document.getElementById('ledgerSev')||{}).value||'all';
+  var f=issues.filter(function(i){
+    if(q&&i.id.indexOf(q)<0&&i.dp.indexOf(q)<0&&i.ds.indexOf(q)<0)return false;
+    if(sf!=='all'&&i.st!==sf)return false;
+    if(svf!=='all'&&i.sv!==svf)return false;
+    return true;
+  });
+  var issue=f[idx];
+  if(!issue)return;
+  var body='<div class="mf-detail"><b>'+issue.id+'</b><br>'+issue.ds+'</div><p style="font-size:12px;color:var(--danger)">确认删除此问题记录？此操作不可恢复。</p>';
+  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" style="background:var(--danger);border-color:var(--danger)" onclick="confirmDelete(\''+issue.id+'\')">确认删除</button>';
+  openModal('删除确认',body,footer);
+}
+function confirmDelete(id){
+  for(var i=issues.length-1;i>=0;i--){if(issues[i].id===id){issues.splice(i,1);break}}
+  closeModal();renderLedger();showToast(id+' 已删除','info');
+}
+
+// ===== Rule Edit =====
+function editRule(idx){
+  var r=rules[idx];
+  var body='<div class="mf-label">规则名称</div><input class="mf-input" id="ruleName" value="'+r.n+'">';
+  body+='<div class="mf-label">触发条件</div><input class="mf-input" id="ruleCond" value="'+r.c+'">';
+  body+='<div class="mf-row"><div><div class="mf-label">严重程度</div><select class="mf-input" id="ruleSv"><option value="high"'+(r.sv==='high'?' selected':'')+'>严重</option><option value="med"'+(r.sv==='med'?' selected':'')+'>中等</option><option value="low"'+(r.sv==='low'?' selected':'')+'>轻微</option></select></div>';
+  body+='<div><div class="mf-label">阈值</div><input class="mf-input" id="ruleThresh" value="'+r.v+'"></div></div>';
+  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="saveRule('+idx+')">保存</button>';
+  openModal('编辑规则',body,footer);
+}
+function saveRule(idx){
+  rules[idx].n=document.getElementById('ruleName').value;
+  rules[idx].c=document.getElementById('ruleCond').value;
+  rules[idx].sv=document.getElementById('ruleSv').value;
+  rules[idx].v=document.getElementById('ruleThresh').value;
+  closeModal();renderRules();showToast('规则「'+rules[idx].n+'」已保存','info');
+}
+
+// ===== Rule Toggle (from switch in rules page) =====
+function toggleRuleSwitch(idx,el){
+  rules[idx].on=el.checked;
+  showToast('规则「'+rules[idx].n+'」已'+(el.checked?'启用':'停用'),'info');
+}
+
+// ===== User Toggle =====
+function toggleUser(idx){
+  users[idx].on=!users[idx].on;
+  renderUsers();
+  showToast(users[idx].n+' 已'+(users[idx].on?'启用':'停用'),'info');
+}
+function addUser(){
+  var body='<div class="mf-label">姓名</div><input class="mf-input" id="newUserName" placeholder="请输入用户姓名">';
+  body+='<div class="mf-row"><div><div class="mf-label">科室</div><select class="mf-input" id="newUserDept"><option>医务科</option><option>骨科</option><option>心血管内科</option><option>神经内科</option><option>普通外科</option><option>内分泌科</option><option>妇产科</option><option>儿科</option><option>呼吸与危重症医学科</option></select></div>';
+  body+='<div><div class="mf-label">角色</div><select class="mf-input" id="newUserRole"><option>临床医生</option><option>质控员</option><option>科室主任</option><option>管理员</option></select></div></div>';
+  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="saveUser()">添加</button>';
+  openModal('添加用户',body,footer);
+}
+function saveUser(){
+  var n=document.getElementById('newUserName').value.trim();
+  if(!n){showToast('请输入用户姓名','warn');return}
+  var d=document.getElementById('newUserDept').value;
+  var r=document.getElementById('newUserRole').value;
+  var pMap={'管理员':'全部权限','质控员':'全院数据','科室主任':'本科室数据','临床医生':'本人病历'};
+  var now=new Date();
+  var ts=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+  users.push({n:n,d:d,r:r,p:pMap[r]||'本人病历',lt:ts,on:true});
+  closeModal();renderUsers();
+  showToast('用户「'+n+'」已添加成功','info');
+}
+
+// ===== Report Generate =====
+function genReportContent(type){
+  var now=new Date();
+  var ds=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+  if(type==='monthly'){
+    var csv='质控月度报告 — '+ds+'\n\n';
+    csv+='一、五维评分\n维度,得分\n';
+    dims.forEach(function(d){csv+=d.n+','+d.s+'\n'});
+    csv+='\n二、科室排行\n科室,质检数,通过数,通过率\n';
+    depts.forEach(function(d){csv+=d.d+','+d.t+','+d.p+','+d.r+'%\n'});
+    csv+='\n三、问题统计\n总计 '+issues.length+' 条, 严重 '+issues.filter(function(i){return i.sv==='high'}).length+' 条\n';
+    return {content:csv,ext:'csv'};
+  } else if(type==='doctor'){
+    var csv='医生个人评分卡 — '+ds+'\n姓名,科室,问题数,严重数\n';
+    var docMap={};
+    issues.forEach(function(i){
+      if(!docMap[i.doc])docMap[i.doc]={dp:i.dp,total:0,high:0};
+      docMap[i.doc].total++;if(i.sv==='high')docMap[i.doc].high++;
+    });
+    for(var k in docMap){csv+=k+','+docMap[k].dp+','+docMap[k].total+','+docMap[k].high+'\n'}
+    return {content:csv,ext:'csv'};
+  } else if(type==='ledger'){
+    var csv='病历号,科室,主管医生,问题类型,级别,问题描述,状态\n';
+    var stMap={pending:'待复核',fixing:'整改中',done:'已闭环'};
+    issues.forEach(function(i){csv+=i.id+','+i.dp+','+i.doc+','+i.tp+','+svL(i.sv)+',"'+i.ds.replace(/"/g,'""')+'",'+(stMap[i.st]||i.st)+'\n'});
+    return {content:csv,ext:'csv'};
+  }
+  return {content:'报表内容',ext:'txt'};
+}
+function genReport(type){
+  var names={'monthly':'质控月度报告','dept':'科室质控统计','doctor':'医生个人评分卡','ledger':'问题台账明细'};
+  var fmts={'monthly':'CSV','dept':'Excel','doctor':'CSV','ledger':'CSV'};
+  var name=names[type]||'报表';
+  var body='<div style="text-align:center;padding:20px 0"><div style="font-size:13px;color:var(--text);margin-bottom:12px">正在生成 '+name+'...</div><div style="width:80%;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin:0 auto"><div id="rptBar" style="width:0%;height:100%;background:var(--primary);border-radius:3px;transition:width .3s"></div></div><div id="rptPct" style="font-size:11px;color:var(--text3);margin-top:8px">0%</div></div>';
+  openModal('生成报告',body,'');
+  var pct=0;
+  var iv=setInterval(function(){
+    pct+=Math.random()*18+5;
+    if(pct>=100){
+      pct=100;clearInterval(iv);
+      var bar=document.getElementById('rptBar');if(bar)bar.style.width='100%';
+      var pctEl=document.getElementById('rptPct');if(pctEl)pctEl.textContent='100% — 完成';
+      var now=new Date();
+      var ts=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate())+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+      reportHistory.unshift({n:name,t:ts,f:fmts[type]||'CSV',o:'王质控',type:type});
+      setTimeout(function(){
+        closeModal();
+        var result=genReportContent(type);
+        var ds=now.toISOString().slice(0,10);
+        downloadFile(name+'_'+ds+'.'+result.ext,result.content);
+        showToast(name+' 已生成并下载','info');
+        if(document.getElementById('pg-report').classList.contains('active'))renderReportHistory();
+      },600);
+    } else {
+      var bar=document.getElementById('rptBar');if(bar)bar.style.width=Math.round(pct)+'%';
+      var pctEl=document.getElementById('rptPct');if(pctEl)pctEl.textContent=Math.round(pct)+'%';
+    }
+  },200);
+}
+var reportHistory=[
+  {n:'2026年6月质控月报',t:'2026-07-01 09:15',f:'CSV',o:'王质控',type:'monthly'},
+  {n:'2026年6月科室统计',t:'2026-07-01 09:20',f:'CSV',o:'王质控',type:'dept'},
+  {n:'Q2季度分析报告',t:'2026-07-02 14:30',f:'CSV',o:'张主任',type:'monthly'}
+];
+function downloadHistoryReport(idx){
+  var r=reportHistory[idx];
+  if(!r)return;
+  if(r.type){
+    var result=genReportContent(r.type);
+    downloadFile(r.n+'.'+result.ext,result.content);
+  } else {
+    downloadFile(r.n+'.csv','报表: '+r.n+'\n导出时间: '+r.t+'\n操作人: '+r.o);
+  }
+}
+function renderReportHistory(){
+  var tb=document.querySelector('#pg-report .tbl tbody');
+  if(!tb)return;
+  tb.innerHTML=reportHistory.map(function(r,idx){
+    return '<tr><td>'+r.n+'</td><td>'+r.t+'</td><td>'+r.f+'</td><td>'+r.o+'</td><td><button class="btn-link" onclick="downloadHistoryReport('+idx+')">下载</button></td></tr>';
+  }).join('');
+}
+
+// ===== Export (real CSV download) =====
+function downloadFile(filename,content,mime){
+  var blob=new Blob(['\uFEFF'+content],{type:(mime||'text/csv')+';charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=filename;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url)},200);
+}
+function exportFile(name){
+  if(name==='问题台账'||name.indexOf('台账')>=0){
+    var csv='病历号,科室,主管医生,问题类型,级别,问题描述,状态\n';
+    var stMap={pending:'待复核',fixing:'整改中',done:'已闭环'};
+    issues.forEach(function(i){
+      csv+=i.id+','+i.dp+','+i.doc+','+i.tp+','+svL(i.sv)+',"'+i.ds.replace(/"/g,'""')+'",'+(stMap[i.st]||i.st)+'\n';
+    });
+    downloadFile('问题台账_'+new Date().toISOString().slice(0,10)+'.csv',csv);
+    showToast('问题台账已导出为 CSV 文件','info');
+  } else if(name==='科室质控统计'){
+    var csv='科室,质检总数,通过数,通过率,严重问题,中等问题,轻微问题\n';
+    depts.forEach(function(d){csv+=d.d+','+d.t+','+d.p+','+d.r+'%,'+d.h+','+d.m2+','+d.l+'\n'});
+    downloadFile('科室质控统计_'+new Date().toISOString().slice(0,10)+'.csv',csv);
+    showToast('科室质控统计已导出为 CSV 文件','info');
+  } else {
+    showToast(name+' 导出成功','info');
+  }
+}
+
+// ===== Card Btn with data change =====
+function tBtn(el){
+  el.parentNode.querySelectorAll('.cbtn').forEach(function(b){b.classList.remove('on')});
+  el.classList.add('on');
+  el.style.transform='scale(0.93)';
+  setTimeout(function(){el.style.transform=''},120);
+  var txt=el.textContent;
+  var cardH=el.closest('.card-h');
+  var cardTitle=cardH?cardH.querySelector('h3').textContent:'';
+  if(cardTitle.indexOf('五维')>=0){
+    if(txt==='本季度'){
+      dims.forEach(function(d){d.s=Math.min(100,Math.max(60,d.s+Math.round((Math.random()-0.4)*6)))});
+      renderScores();initCanvas();drawRadar();
+    } else if(txt==='本月'){
+      dims.forEach(function(d,i){d.s=[92,85,88,79,95][i]});
+      renderScores();initCanvas();drawRadar();
+    }
+  } else if(cardTitle.indexOf('排行')>=0){
+    if(txt==='今日'){
+      depts.forEach(function(d,i){d.r=[91.2,85.7,88.0,77.3,83.3,87.5,92.9,83.3][i]});
+      depts.sort(function(a,b){return b.r-a.r});renderDepts();
+    } else if(txt==='本周'||txt==='本月'){
+      depts.forEach(function(d){d.r=Math.min(100,Math.max(70,d.r+Math.round((Math.random()-0.4)*4)))});
+      depts.sort(function(a,b){return b.r-a.r});renderDepts();
+    }
+  } else if(cardTitle.indexOf('预警')>=0){
+    if(txt==='仅严重'){monitorSevFilter='high'}else{monitorSevFilter='all'}
+    renderMonitor();
+  }
+}
+
+// ===== Radar =====
+function drawRadar(){
+  var cv=document.getElementById('radarCv');if(!cv)return;
+  var ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2,cy=H/2+6,R=Math.min(cx,cy)-44,n=dims.length;
+  ctx.clearRect(0,0,W,H);
+  [20,40,60,80,100].forEach(function(lv){
+    ctx.beginPath();ctx.strokeStyle=lv===100?'#d6d3d1':'#e7e5e4';ctx.lineWidth=1;
+    if(lv===60){ctx.setLineDash([3,3])}else{ctx.setLineDash([])}
+    for(var i=0;i<=n;i++){var a=Math.PI*2/n*i-Math.PI/2,r=R*lv/100,x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+    ctx.stroke();ctx.setLineDash([]);
+  });
+  for(var i=0;i<n;i++){var a=Math.PI*2/n*i-Math.PI/2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));ctx.strokeStyle='#e7e5e4';ctx.stroke()}
+  ctx.beginPath();ctx.fillStyle='rgba(15,118,110,0.1)';ctx.strokeStyle='#0f766e';ctx.lineWidth=2;
+  for(var i=0;i<=n;i++){var idx=i%n,a=Math.PI*2/n*idx-Math.PI/2,r=R*dims[idx].s/100,x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+  ctx.fill();ctx.stroke();
+  for(var i=0;i<n;i++){
+    var a=Math.PI*2/n*i-Math.PI/2,r=R*dims[i].s/100,px=cx+r*Math.cos(a),py=cy+r*Math.sin(a);
+    ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fillStyle='#0f766e';ctx.fill();
+    ctx.beginPath();ctx.arc(px,py,2,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+    var lx=cx+(R+24)*Math.cos(a),ly=cy+(R+24)*Math.sin(a);
+    ctx.fillStyle='#1c1917';ctx.font='bold 11px "Microsoft YaHei",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(dims[i].n,lx,ly-6);
+    ctx.fillStyle=dims[i].s>=90?'#16a34a':dims[i].s>=80?'#d97706':'#dc2626';ctx.font='bold 12px sans-serif';ctx.fillText(dims[i].s,lx,ly+8);
+  }
+}
+
+// ===== Line =====
+function drawLine(){
+  var cv=document.getElementById('lineCv');if(!cv)return;
+  var ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pl=48,pr=48,pt=22,pb=32,cw=W-pl-pr,ch=H-pt-pb,n=trend.length;
+  ctx.clearRect(0,0,W,H);
+  var cMin=80,cMax=140,rMin=76,rMax=92;
+  ctx.font='10px sans-serif';
+  for(var i=0;i<=4;i++){
+    var y=pt+ch*(1-i/4);
+    ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(pl+cw,y);ctx.strokeStyle='#f5f5f4';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#a8a29e';ctx.textAlign='right';ctx.fillText(Math.round(cMin+(cMax-cMin)*i/4),pl-6,y+3);
+    ctx.textAlign='left';ctx.fillText(Math.round(rMin+(rMax-rMin)*i/4)+'%',pl+cw+6,y+3);
+  }
+  ctx.beginPath();ctx.moveTo(pl,pt+ch);
+  for(var i=0;i<n;i++){var x=pl+cw/(n-1)*i,y=pt+ch*(1-(trend[i].c-cMin)/(cMax-cMin));ctx.lineTo(x,y)}
+  ctx.lineTo(pl+cw,pt+ch);ctx.closePath();
+  var grd=ctx.createLinearGradient(0,pt,0,pt+ch);grd.addColorStop(0,'rgba(15,118,110,0.12)');grd.addColorStop(1,'rgba(15,118,110,0.01)');
+  ctx.fillStyle=grd;ctx.fill();
+  ctx.beginPath();ctx.strokeStyle='#0f766e';ctx.lineWidth=2;
+  for(var i=0;i<n;i++){var x=pl+cw/(n-1)*i,y=pt+ch*(1-(trend[i].c-cMin)/(cMax-cMin));i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+  ctx.stroke();
+  for(var i=0;i<n;i++){var x=pl+cw/(n-1)*i,y=pt+ch*(1-(trend[i].c-cMin)/(cMax-cMin));ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle='#0f766e';ctx.fill();ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill()}
+  ctx.beginPath();ctx.strokeStyle='#16a34a';ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+  for(var i=0;i<n;i++){var x=pl+cw/(n-1)*i,y=pt+ch*(1-(trend[i].r-rMin)/(rMax-rMin));i===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+  ctx.stroke();ctx.setLineDash([]);
+  for(var i=0;i<n;i++){var x=pl+cw/(n-1)*i,y=pt+ch*(1-(trend[i].r-rMin)/(rMax-rMin));ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fillStyle='#16a34a';ctx.fill();ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill()}
+  ctx.fillStyle='#a8a29e';ctx.textAlign='center';ctx.font='10px sans-serif';
+  for(var i=0;i<n;i++){var x=pl+cw/(n-1)*i;ctx.fillText(trend[i].d,x,H-pb+16)}
+  ctx.font='10px "Microsoft YaHei",sans-serif';
+  ctx.fillStyle='#0f766e';ctx.fillRect(pl,5,12,2);ctx.textAlign='left';ctx.fillText('质检病历数',pl+16,8);
+  ctx.fillStyle='#16a34a';ctx.setLineDash([4,2]);ctx.beginPath();ctx.moveTo(pl+100,6);ctx.lineTo(pl+112,6);ctx.stroke();ctx.setLineDash([]);ctx.fillText('通过率',pl+118,8);
+}
+
+// ===== Scores =====
+function renderScores(){
+  document.getElementById('scoreList').innerHTML='<div>'+dims.map(function(d){
+    var tc=d.s>=90?'var(--success)':d.s>=80?'var(--warning)':'var(--danger)';
+    var ar=d.tr.indexOf('+')>=0?'<span class="tr-up">'+d.tr+'</span>':'<span class="tr-dn">'+d.tr+'</span>';
+    return '<div class="dim-item"><div class="dim-ico" style="background:'+d.bg+';color:'+d.clr+'">'+d.ico+'</div><div style="flex:1"><div class="dim-nm">'+d.n+' '+ar+'</div><div class="dim-bar"><div class="dim-fill" style="width:'+d.s+'%;background:'+d.clr+'"></div></div></div><div class="dim-sc" style="color:'+tc+'">'+d.s+'</div></div>';
+  }).join('')+'</div><div style="padding:8px 0 0;font-size:10px;color:var(--text3);border-top:1px solid var(--border);margin-top:6px"><span style="color:var(--success)">&#9632;</span> &#8805;90优秀 <span style="color:var(--warning)">&#9632;</span> 80-89达标 <span style="color:var(--danger)">&#9632;</span> &lt;80待改进</div>';
+}
+
+// ===== Dept Table =====
+function renderDepts(){
+  document.getElementById('deptBody').innerHTML=depts.map(function(d,i){
+    var rc=i===0?'g':i===1?'s':i===2?'b':'n';
+    var rcls=d.r>=90?'ok':d.r>=80?'mid':'lo';
+    var bc=d.r>=90?'var(--success)':d.r>=80?'var(--warning)':'var(--danger)';
+    return '<tr><td><span class="rk '+rc+'">'+(i+1)+'</span></td><td style="font-weight:500">'+d.d+'</td><td>'+d.t+'</td><td>'+d.p+'</td><td class="rate '+rcls+'">'+d.r+'%</td><td><div class="pbar"><div class="pbar-f" style="width:'+d.r+'%;background:'+bc+'"></div></div></td><td>'+(d.tr==='up'?'<span class="tr-up">&#9650;</span>':'<span class="tr-dn">&#9660;</span>')+'</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.m+'</td></tr>';
+  }).join('');
+}
+
+// ===== Issues =====
+function svL(s){return s==='high'?'严重':s==='med'?'中等':'轻微'}
+function renderIssues(){
+  var el=document.getElementById('issueList');if(!el)return;
+  var f=issues.filter(function(i){
+    if(filterD!=='all'&&i.dp!==filterD)return false;
+    if(filterT!=='all'&&i.tp!==filterT)return false;
+    if(filterS!=='all'&&i.sv!==filterS)return false;
+    return true;
+  });
+  document.getElementById('issCnt').textContent='共 '+f.length+' 条';
+  el.innerHTML=f.map(function(i){
+    return '<div class="iss sv-'+i.sv+(i.isNew?' flash':'')+'"><div class="iss-top"><span class="iss-id">'+i.id+'</span><span class="iss-tm">'+(i.isNew?'&#9679; ':'')+i.tm+'分钟前</span></div><div class="iss-desc">'+i.ds+'</div><div class="iss-meta"><span class="tag t-dept">'+i.dp+'</span><span class="tag t-doc">'+i.doc+'</span><span class="tag t-bed">'+i.bed+'</span><span class="tag t-type">'+i.tp+'</span><span class="tag t-sv-'+i.sv+'">'+svL(i.sv)+'</span></div></div>';
+  }).join('');
+}
+
+// ===== Filters =====
+function renderFilters(){
+  var fp=document.getElementById('filterPanel');if(!fp)return;
+  var types=['全部','完整性','合理性','规范性','准确性','时效性'];
+  var h='<div class="flt-sec"><div class="flt-title">问题类型</div><div class="chips">'+types.map(function(t){var v=t==='全部'?'all':t;return '<span class="chip'+(v===filterT?' on':'')+'" onclick="setTF(\''+v+'\',this)">'+t+'</span>'}).join('')+'</div></div>';
+  h+='<div class="flt-sec"><div class="flt-title">科室</div><select class="flt-sel" onchange="setDF(this.value)"><option value="all">全部科室</option>';
+  depts.forEach(function(d){h+='<option value="'+d.d+'"'+(filterD===d.d?' selected':'')+'>'+d.d+'</option>'});
+  h+='</select></div>';
+  h+='<div class="flt-sec"><div class="flt-title">严重程度</div><div class="chips">'+['全部','严重','中等','轻微'].map(function(t){var v=t==='全部'?'all':t==='严重'?'high':t==='中等'?'med':'low';return '<span class="chip'+(v===filterS?' on':'')+'" onclick="setSF(\''+v+'\',this)">'+t+'</span>'}).join('')+'</div></div>';
+  var hc=issues.filter(function(i){return i.sv==='high'}).length,mc=issues.filter(function(i){return i.sv==='med'}).length;
+  h+='<div class="flt-sum">当前 <b>'+issues.length+'</b> 条 · 严重 <b style="color:var(--danger)">'+hc+'</b> · 中等 <b style="color:var(--warning)">'+mc+'</b></div>';
+  fp.innerHTML=h;
+}
+function setTF(v,el){filterT=v;el.parentNode.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on')});el.classList.add('on');renderIssues()}
+function setDF(v){filterD=v;renderIssues()}
+function setSF(v,el){filterS=v;el.parentNode.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on')});el.classList.add('on');renderIssues()}
+
+// ===== Monitor Page =====
+function renderMonitor(){
+  var sys=[{n:'FHIR 数据接口',s:'ok',v:98},{n:'HanLP NLP 引擎',s:'ok',v:95},{n:'ChatGLM3-6B 推理',s:'ok',v:88},{n:'Elasticsearch 索引',s:'warn',v:72},{n:'Kafka 消息队列',s:'ok',v:96},{n:'AppSmith 报表服务',s:'ok',v:100}];
+  document.getElementById('sysHealth').innerHTML=sys.map(function(s){
+    var bc=s.v>=90?'var(--success)':s.v>=70?'var(--warning)':'var(--danger)';
+    return '<div class="live-row"><span class="live-dot '+s.s+'"></span><span style="width:140px;font-weight:500">'+s.n+'</span><div class="live-bar"><div class="live-fill" style="width:'+s.v+'%;background:'+bc+'"></div></div><span style="font-size:11px;font-weight:600;color:'+bc+';min-width:36px;text-align:right">'+s.v+'%</span></div>';
+  }).join('');
+  var dl=depts.slice(0,6);
+  document.getElementById('deptLive').innerHTML=dl.map(function(d){
+    var bc=d.r>=90?'var(--success)':d.r>=80?'var(--warning)':'var(--danger)';
+    return '<div class="live-row"><span style="width:100px;font-weight:500;font-size:12px">'+d.d+'</span><div class="live-bar"><div class="live-fill" style="width:'+d.r+'%;background:'+bc+'"></div></div><span style="font-size:11px;font-weight:600;color:'+bc+';min-width:40px;text-align:right">'+d.r+'%</span></div>';
+  }).join('');
+  var ml=issues.filter(function(i){
+    if(i.st==='done')return false;
+    if(monitorSevFilter==='high')return i.sv==='high';
+    return i.sv==='high'||i.sv==='med';
+  }).slice(0,8);
+  document.getElementById('monitorList').innerHTML=ml.length?ml.map(function(i,idx){
+    return '<div class="live-row" style="border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px"><span class="live-dot '+(i.sv==='high'?'err':'warn')+'"></span><span class="iss-id" style="min-width:130px">'+i.id+'</span><span style="flex:1;font-size:12px">'+i.ds.substring(0,35)+'...</span><span class="tag t-dept" style="margin-right:4px">'+i.dp+'</span><span class="tag t-sv-'+i.sv+'" style="margin-right:6px">'+svL(i.sv)+'</span><button class="btn btn-sm btn-p" onclick="confirmAlert(\''+i.id+'\')">确认</button></div>';
+  }).join(''):'<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">暂无待处理预警</div>';
+}
+
+// ===== Ledger Page =====
+function goPage(p){ledgerPage=p;renderLedger()}
+function renderLedger(){
+  var q=(document.getElementById('ledgerSearch')||{}).value||'';
+  var sf=(document.getElementById('ledgerStatus')||{}).value||'all';
+  var svf=(document.getElementById('ledgerSev')||{}).value||'all';
+  var f=issues.filter(function(i){
+    if(q&&i.id.indexOf(q)<0&&i.dp.indexOf(q)<0&&i.doc.indexOf(q)<0&&i.ds.indexOf(q)<0)return false;
+    if(sf!=='all'&&i.st!==sf)return false;
+    if(svf!=='all'&&i.sv!==svf)return false;
+    return true;
+  });
+  var totalPages=Math.max(1,Math.ceil(f.length/ledgerPerPage));
+  if(ledgerPage>totalPages)ledgerPage=totalPages;
+  var start=(ledgerPage-1)*ledgerPerPage;
+  var pageItems=f.slice(start,start+ledgerPerPage);
+  var stMap={pending:['待复核','st-pending'],fixing:['整改中','st-fixing'],done:['已闭环','st-done']};
+  document.getElementById('ledgerBody').innerHTML=pageItems.map(function(i,idx){
+    var realIdx=start+idx;
+    var st=stMap[i.st]||['未知',''];
+    return '<tr><td class="iss-id">'+i.id+'</td><td>'+i.dp+'</td><td>'+i.doc+'</td><td><span class="tag t-type">'+i.tp+'</span></td><td><span class="tag t-sv-'+i.sv+'">'+svL(i.sv)+'</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+i.ds+'">'+i.ds.substring(0,30)+'...</td><td><span class="st-badge '+st[1]+'">'+st[0]+'</span></td><td style="white-space:nowrap"><button class="btn btn-sm btn-o" onclick="reviewIssue('+realIdx+')" style="margin-right:4px">复核</button><button class="btn btn-sm btn-o" onclick="deleteIssue('+realIdx+')" style="color:var(--danger)">删除</button></td></tr>';
+  }).join('');
+  document.getElementById('ledgerInfo').textContent='共 '+f.length+' 条记录（总计 '+issues.length+' 条）';
+  // Render pagination
+  var pgEl=document.getElementById('ledgerPaging');
+  if(pgEl){
+    var ph='<button class="btn btn-o btn-sm"'+(ledgerPage<=1?' disabled':'')+' onclick="goPage('+(ledgerPage-1)+')">上一页</button>';
+    for(var i=1;i<=totalPages;i++){
+      ph+='<button class="btn '+(i===ledgerPage?'btn-p':'btn-o')+' btn-sm" onclick="goPage('+i+')">'+i+'</button>';
+    }
+    ph+='<button class="btn btn-o btn-sm"'+(ledgerPage>=totalPages?' disabled':'')+' onclick="goPage('+(ledgerPage+1)+')">下一页</button>';
+    pgEl.innerHTML=ph;
+  }
+}
+
+// ===== Analysis Page =====
+function drawBar(){
+  var cv=document.getElementById('barCv');if(!cv)return;
+  var ctx=cv.getContext('2d'),W=cv.width,H=cv.height,pl=50,pr=20,pt=20,pb=60,cw=W-pl-pr,ch=H-pt-pb;
+  ctx.clearRect(0,0,W,H);
+  var n=depts.length,bw=cw/n*0.6,gap=cw/n*0.4;
+  ctx.font='10px sans-serif';
+  for(var i=0;i<=4;i++){var y=pt+ch*(1-i/4);ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(pl+cw,y);ctx.strokeStyle='#f5f5f4';ctx.stroke();ctx.fillStyle='#a8a29e';ctx.textAlign='right';ctx.fillText(Math.round(i*25)+'%',pl-6,y+3)}
+  depts.forEach(function(d,i){
+    var x=pl+i*(bw+gap)+gap/2,h2=ch*d.r/100,y=pt+ch-h2;
+    var bc=d.r>=90?'#16a34a':d.r>=80?'#d97706':'#dc2626';
+    ctx.fillStyle=bc;ctx.fillRect(x,y,bw,h2);
+    ctx.fillStyle='#1c1917';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText(d.r+'%',x+bw/2,y-4);
+    ctx.save();ctx.translate(x+bw/2,H-pb+10);ctx.rotate(Math.PI/6);ctx.fillStyle='#57534e';ctx.font='10px "Microsoft YaHei",sans-serif';ctx.textAlign='left';ctx.fillText(d.d.substring(0,4),0,0);ctx.restore();
+  });
+}
+function drawPie(){
+  var cv=document.getElementById('pieCv');if(!cv)return;
+  var ctx=cv.getContext('2d'),W=cv.width,H=cv.height,cx=W/2-40,cy=H/2,R=Math.min(cx,cy)-30;
+  ctx.clearRect(0,0,W,H);
+  var data=[{n:'完整性',v:28,c:'#0f766e'},{n:'合理性',v:22,c:'#d97706'},{n:'规范性',v:18,c:'#0284c7'},{n:'准确性',v:20,c:'#dc2626'},{n:'时效性',v:12,c:'#7c3aed'}];
+  var total=data.reduce(function(a,d){return a+d.v},0),sa=-Math.PI/2;
+  data.forEach(function(d){
+    var ea=sa+d.v/total*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R,sa,ea);ctx.closePath();ctx.fillStyle=d.c;ctx.fill();
+    sa=ea;
+  });
+  ctx.beginPath();ctx.arc(cx,cy,R*0.55,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  ctx.fillStyle='#1c1917';ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(total,cx,cy-6);
+  ctx.fillStyle='#a8a29e';ctx.font='10px "Microsoft YaHei",sans-serif';ctx.fillText('总问题数',cx,cy+10);
+  var lx=cx+R+30,ly=30;
+  data.forEach(function(d){
+    ctx.fillStyle=d.c;ctx.fillRect(lx,ly,10,10);ctx.fillStyle='#1c1917';ctx.font='11px "Microsoft YaHei",sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(d.n+' '+d.v+'件 ('+Math.round(d.v/total*100)+'%)',lx+16,ly+5);
+    ly+=22;
+  });
+}
+function renderAnalysis(){
+  initAnalysisCanvas();drawBar();drawPie();
+  document.getElementById('analysisBody').innerHTML=depts.map(function(d){
+    var rcls=d.r>=90?'ok':d.r>=80?'mid':'lo';
+    return '<tr><td style="font-weight:500">'+d.d+'</td><td>'+d.t+'</td><td>'+d.p+'</td><td class="rate '+rcls+'">'+d.r+'%</td><td style="color:var(--danger)">'+d.h+'</td><td style="color:var(--warning)">'+d.m2+'</td><td style="color:var(--info)">'+d.l+'</td><td>'+(d.tr==='up'?'<span class="tr-up">&#9650; +'+((Math.random()*3+0.5).toFixed(1))+'%</span>':'<span class="tr-dn">&#9660; -'+((Math.random()*2+0.3).toFixed(1))+'%</span>')+'</td></tr>';
+  }).join('');
+}
+function initAnalysisCanvas(){['barCv','pieCv'].forEach(function(id){var cv=document.getElementById(id);if(cv)cv.width=cv.parentElement.clientWidth-32})}
+
+// ===== Rules Page =====
+function toggleDim(idx,el){
+  dims[idx].on=el.checked;
+  showToast(dims[idx].n+'检查已'+(el.checked?'启用':'停用'),'info');
+}
+function renderRules(){
+  // Render dimension toggles
+  var dimDescs=['检查必填字段、附件是否齐全、签名是否完整','校验诊疗方案与诊断是否匹配、用药合理性','术语是否使用ICD-10标准编码、格式是否统一','检验数据与病程记录是否一致、影像报告交叉验证','病程记录是否按时完成、超时自动预警'];
+  var dimNames=['完整性检查','合理性检查','规范性检查','准确性检查','时效性检查'];
+  var dtEl=document.getElementById('dimToggles');
+  if(dtEl){
+    dtEl.innerHTML=dimNames.map(function(nm,idx){
+      var on=dims[idx].on!==false;
+      var bdr=idx<dimNames.length-1?'border-bottom:1px solid var(--border)':'';
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;'+bdr+'"><div><div style="font-weight:500;font-size:12px">'+nm+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">'+dimDescs[idx]+'</div></div><label class="toggle"><input type="checkbox"'+(on?' checked':'')+' onchange="toggleDim('+idx+',this)"><span class="slider"></span></label></div>';
+    }).join('');
+  }
+  // Render threshold table
+  document.getElementById('ruleTable').innerHTML=rules.map(function(r,idx){
+    var sc=r.sv==='high'?'t-sv-high':r.sv==='med'?'t-sv-med':'t-sv-low';
+    var on=r.on!==false;
+    return '<tr><td style="font-weight:500">'+r.n+'</td><td style="font-size:11px;color:var(--text2)">'+r.c+'</td><td><span class="tag '+sc+'">'+svL(r.sv)+'</span></td><td style="font-family:monospace;font-size:11px">'+r.v+'</td><td style="white-space:nowrap"><label class="toggle" style="margin-right:6px;vertical-align:middle"><input type="checkbox"'+(on?' checked':'')+' onchange="toggleRuleSwitch('+idx+',this)"><span class="slider"></span></label><button class="btn btn-sm btn-o" onclick="editRule('+idx+')">编辑</button></td></tr>';
+  }).join('');
+}
+function saveRuleConfig(){
+  showToast('阈值配置已保存，共 '+rules.length+' 条规则已生效','info');
+}
+
+// ===== Users Page =====
+function editUser(idx){
+  var u=users[idx];
+  var body='<div class="mf-label">姓名</div><input class="mf-input" id="editUserName" value="'+u.n+'">';
+  body+='<div class="mf-row"><div><div class="mf-label">科室</div><select class="mf-input" id="editUserDept">';
+  ['医务科','骨科','心血管内科','神经内科','普通外科','内分泌科','妇产科','儿科','呼吸与危重症医学科'].forEach(function(d){
+    body+='<option'+(d===u.d?' selected':'')+'>'+d+'</option>';
+  });
+  body+='</select></div><div><div class="mf-label">角色</div><select class="mf-input" id="editUserRole">';
+  ['管理员','质控员','科室主任','临床医生'].forEach(function(r){
+    body+='<option'+(r===u.r?' selected':'')+'>'+r+'</option>';
+  });
+  body+='</select></div></div>';
+  body+='<div class="mf-label">权限范围</div><select class="mf-input" id="editUserPerm">';
+  ['全部权限','全院数据','本科室数据','本人病历'].forEach(function(p){
+    body+='<option'+(p===u.p?' selected':'')+'>'+p+'</option>';
+  });
+  body+='</select>';
+  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="saveUserEdit('+idx+')">保存</button>';
+  openModal('编辑用户 — '+u.n,body,footer);
+}
+function saveUserEdit(idx){
+  var u=users[idx];
+  u.n=document.getElementById('editUserName').value.trim()||u.n;
+  u.d=document.getElementById('editUserDept').value;
+  u.r=document.getElementById('editUserRole').value;
+  u.p=document.getElementById('editUserPerm').value;
+  closeModal();renderUsers();
+  showToast('用户「'+u.n+'」信息已更新','info');
+}
+function deleteUser(idx){
+  var u=users[idx];
+  var body='<div class="mf-detail"><b>'+u.n+'</b> · '+u.d+' · '+u.r+'</div><p style="font-size:12px;color:var(--danger)">确认删除此用户？该用户将无法登录系统。</p>';
+  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" style="background:var(--danger);border-color:var(--danger)" onclick="confirmDeleteUser('+idx+')">确认删除</button>';
+  openModal('删除用户',body,footer);
+}
+function confirmDeleteUser(idx){
+  var name=users[idx].n;
+  users.splice(idx,1);
+  closeModal();renderUsers();
+  showToast('用户「'+name+'」已删除','info');
+}
+function renderUsers(){
+  document.getElementById('userBody').innerHTML=users.map(function(u,idx){
+    return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">'+u.n.charAt(0)+'</div><span style="font-weight:500">'+u.n+'</span></div></td><td>'+u.d+'</td><td><span class="tag '+(u.r==='管理员'?'t-sv-high':u.r==='质控员'?'t-dept':'t-type')+'">'+u.r+'</span></td><td style="font-size:11px;color:var(--text2)">'+u.p+'</td><td style="font-size:11px;color:var(--text3)">'+u.lt+'</td><td><label class="toggle"><input type="checkbox"'+(u.on?' checked':'')+' onchange="toggleUser('+idx+')"><span class="slider"></span></label></td><td style="white-space:nowrap"><button class="btn btn-sm btn-o" onclick="editUser('+idx+')" style="margin-right:3px">编辑</button><button class="btn btn-sm btn-o" onclick="deleteUser('+idx+')" style="color:var(--danger)">删除</button></td></tr>';
+  }).join('');
+  var uc=document.getElementById('userCount');if(uc)uc.textContent='共 '+users.length+' 个用户';
+}
+
+// ===== Init =====
+function initCanvas(){['radarCv','lineCv'].forEach(function(id){var cv=document.getElementById(id);if(cv)cv.width=cv.parentElement.clientWidth-32})}
+initCanvas();drawRadar();drawLine();renderScores();renderDepts();renderFilters();renderIssues();
+window.addEventListener('resize',function(){initCanvas();drawRadar();drawLine()});
+
+// ===== Realtime =====
+setInterval(function(){
+  cnt++;var t=newPool[Math.floor(Math.random()*newPool.length)];
+  var doc=docs[Math.floor(Math.random()*docs.length)],bed=beds[Math.floor(Math.random()*beds.length)];
+  var ni={id:'MR-20260704-0'+cnt,dp:t.dp,doc:doc,bed:bed,tp:t.tp,sv:t.sv,ds:t.ds,tm:0,isNew:true,st:'pending'};
+  issues.unshift(ni);if(issues.length>30)issues.pop();
+  issues.forEach(function(i,idx){if(idx>0)i.isNew=false;if(i.tm<60)i.tm++});
+  renderIssues();renderFilters();
+  showToast('['+t.dp+'] MR-20260704-0'+cnt+' '+svL(t.sv)+'：'+t.ds.substring(0,18)+'...',t.sv);
+  var b=document.getElementById('navBadge');if(b)b.textContent=issues.filter(function(i){return i.sv==='high'}).length;
+},8000);
+</script>
+</body>
+</html>
