@@ -478,19 +478,26 @@ function pad(n){return n<10?'0'+n:''+n}
 function updClock(){var d=new Date(),s=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());document.getElementById('hTime').textContent=s;var u=document.getElementById('uTime');if(u)u.textContent=pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())}
 updClock();setInterval(updClock,1000);
 
+// ===== HTML 转义 =====
+// 所有进入 innerHTML 的动态数据（规则名/用户名/问题描述等）必须先过 esc()。
+// 病历号、医生姓名、问题描述在真实场景是不可信输入,未转义即拼接就是存储型 XSS。
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+// 内联事件参数专用:JSON 串化保证 JS 字符串安全,esc 保证 HTML 属性安全
+function jsAttr(s){return esc(JSON.stringify(String(s==null?'':s)))}
+
 // ===== Toast =====
 function showToast(msg,type){
   var c=document.getElementById('toasts'),ic=type==='high'||type==='err'?'err':type==='med'||type==='warn'?'warn':'info';
   var ch=type==='high'||type==='err'?'!':type==='med'||type==='warn'?'!':'i';
   var t=document.createElement('div');t.className='toast';
-  t.innerHTML='<div class="toast-ico '+ic+'">'+ch+'</div><div>'+msg+'</div>';
+  t.innerHTML='<div class="toast-ico '+ic+'">'+ch+'</div><div>'+esc(msg)+'</div>';
   c.appendChild(t);
   setTimeout(function(){t.classList.add('out');setTimeout(function(){t.remove()},300)},4000);
 }
 
 // ===== Modal =====
 function openModal(title,body,footer){
-  document.getElementById('modalBox').innerHTML='<div class="modal-mask" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-h"><h3>'+title+'</h3><button class="modal-x" onclick="closeModal()">&#10005;</button></div><div class="modal-b">'+body+'</div>'+(footer?'<div class="modal-f">'+footer+'</div>':'')+'</div></div>';
+  document.getElementById('modalBox').innerHTML='<div class="modal-mask" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-h"><h3>'+esc(title)+'</h3><button class="modal-x" onclick="closeModal()">&#10005;</button></div><div class="modal-b">'+body+'</div>'+(footer?'<div class="modal-f">'+footer+'</div>':'')+'</div></div>';
 }
 function closeModal(){document.getElementById('modalBox').innerHTML=''}
 
@@ -516,11 +523,11 @@ function reviewIssue(idx){
   });
   var issue=f[idx];
   if(!issue)return;
-  var body='<div class="mf-detail"><b>'+issue.id+'</b> · '+issue.dp+' · '+issue.doc+' · '+issue.bed+'<br>'+issue.ds+'</div>';
+  var body='<div class="mf-detail"><b>'+esc(issue.id)+'</b> · '+esc(issue.dp)+' · '+esc(issue.doc)+' · '+esc(issue.bed)+'<br>'+esc(issue.ds)+'</div>';
   body+='<div class="mf-label">流转状态</div><div class="mf-row"><div><select class="mf-input" id="rvStatus"><option value="fixing"'+(issue.st==='fixing'?' selected':'')+'>整改中</option><option value="done"'+(issue.st==='done'?' selected':'')+'>已闭环</option></select></div></div>';
   body+='<div class="mf-label">复核意见</div><textarea class="mf-input" id="rvNote" placeholder="请输入复核意见...">已确认问题，'+(issue.st==='done'?'整改完毕':'正在整改')+'</textarea>';
-  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="submitReview(\''+issue.id+'\')">确认提交</button>';
-  openModal('问题复核 — '+issue.id,body,footer);
+  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="submitReview('+jsAttr(issue.id)+')">确认提交</button>';
+  openModal('问题复核 — '+esc(issue.id),body,footer);
 }
 function submitReview(id){
   var st=document.getElementById('rvStatus').value;
@@ -546,8 +553,8 @@ function deleteIssue(idx){
   });
   var issue=f[idx];
   if(!issue)return;
-  var body='<div class="mf-detail"><b>'+issue.id+'</b><br>'+issue.ds+'</div><p style="font-size:12px;color:var(--danger)">确认删除此问题记录？此操作不可恢复。</p>';
-  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" style="background:var(--danger);border-color:var(--danger)" onclick="confirmDelete(\''+issue.id+'\')">确认删除</button>';
+  var body='<div class="mf-detail"><b>'+esc(issue.id)+'</b><br>'+esc(issue.ds)+'</div><p style="font-size:12px;color:var(--danger)">确认删除此问题记录？此操作不可恢复。</p>';
+  var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" style="background:var(--danger);border-color:var(--danger)" onclick="confirmDelete('+jsAttr(issue.id)+')">确认删除</button>';
   openModal('删除确认',body,footer);
 }
 function confirmDelete(id){
@@ -558,10 +565,10 @@ function confirmDelete(id){
 // ===== Rule Edit =====
 function editRule(idx){
   var r=rules[idx];
-  var body='<div class="mf-label">规则名称</div><input class="mf-input" id="ruleName" value="'+r.n+'">';
-  body+='<div class="mf-label">触发条件</div><input class="mf-input" id="ruleCond" value="'+r.c+'">';
+  var body='<div class="mf-label">规则名称</div><input class="mf-input" id="ruleName" value="'+esc(r.n)+'">';
+  body+='<div class="mf-label">触发条件</div><input class="mf-input" id="ruleCond" value="'+esc(r.c)+'">';
   body+='<div class="mf-row"><div><div class="mf-label">严重程度</div><select class="mf-input" id="ruleSv"><option value="high"'+(r.sv==='high'?' selected':'')+'>严重</option><option value="med"'+(r.sv==='med'?' selected':'')+'>中等</option><option value="low"'+(r.sv==='low'?' selected':'')+'>轻微</option></select></div>';
-  body+='<div><div class="mf-label">阈值</div><input class="mf-input" id="ruleThresh" value="'+r.v+'"></div></div>';
+  body+='<div><div class="mf-label">阈值</div><input class="mf-input" id="ruleThresh" value="'+esc(r.v)+'"></div></div>';
   var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" onclick="saveRule('+idx+')">保存</button>';
   openModal('编辑规则',body,footer);
 }
@@ -683,7 +690,7 @@ function renderReportHistory(){
   var tb=document.querySelector('#pg-report .tbl tbody');
   if(!tb)return;
   tb.innerHTML=reportHistory.map(function(r,idx){
-    return '<tr><td>'+r.n+'</td><td>'+r.t+'</td><td>'+r.f+'</td><td>'+r.o+'</td><td><button class="btn-link" onclick="downloadHistoryReport('+idx+')">下载</button></td></tr>';
+    return '<tr><td>'+esc(r.n)+'</td><td>'+esc(r.t)+'</td><td>'+esc(r.f)+'</td><td>'+esc(r.o)+'</td><td><button class="btn-link" onclick="downloadHistoryReport('+idx+')">下载</button></td></tr>';
   }).join('');
 }
 
@@ -808,8 +815,8 @@ function drawLine(){
 function renderScores(){
   document.getElementById('scoreList').innerHTML='<div>'+dims.map(function(d){
     var tc=d.s>=90?'var(--success)':d.s>=80?'var(--warning)':'var(--danger)';
-    var ar=d.tr.indexOf('+')>=0?'<span class="tr-up">'+d.tr+'</span>':'<span class="tr-dn">'+d.tr+'</span>';
-    return '<div class="dim-item"><div class="dim-ico" style="background:'+d.bg+';color:'+d.clr+'">'+d.ico+'</div><div style="flex:1"><div class="dim-nm">'+d.n+' '+ar+'</div><div class="dim-bar"><div class="dim-fill" style="width:'+d.s+'%;background:'+d.clr+'"></div></div></div><div class="dim-sc" style="color:'+tc+'">'+d.s+'</div></div>';
+    var ar=d.tr.indexOf('+')>=0?'<span class="tr-up">'+esc(d.tr)+'</span>':'<span class="tr-dn">'+esc(d.tr)+'</span>';
+    return '<div class="dim-item"><div class="dim-ico" style="background:'+d.bg+';color:'+d.clr+'">'+d.ico+'</div><div style="flex:1"><div class="dim-nm">'+esc(d.n)+' '+ar+'</div><div class="dim-bar"><div class="dim-fill" style="width:'+d.s+'%;background:'+d.clr+'"></div></div></div><div class="dim-sc" style="color:'+tc+'">'+d.s+'</div></div>';
   }).join('')+'</div><div style="padding:8px 0 0;font-size:10px;color:var(--text3);border-top:1px solid var(--border);margin-top:6px"><span style="color:var(--success)">&#9632;</span> &#8805;90优秀 <span style="color:var(--warning)">&#9632;</span> 80-89达标 <span style="color:var(--danger)">&#9632;</span> &lt;80待改进</div>';
 }
 
@@ -819,7 +826,7 @@ function renderDepts(){
     var rc=i===0?'g':i===1?'s':i===2?'b':'n';
     var rcls=d.r>=90?'ok':d.r>=80?'mid':'lo';
     var bc=d.r>=90?'var(--success)':d.r>=80?'var(--warning)':'var(--danger)';
-    return '<tr><td><span class="rk '+rc+'">'+(i+1)+'</span></td><td style="font-weight:500">'+d.d+'</td><td>'+d.t+'</td><td>'+d.p+'</td><td class="rate '+rcls+'">'+d.r+'%</td><td><div class="pbar"><div class="pbar-f" style="width:'+d.r+'%;background:'+bc+'"></div></div></td><td>'+(d.tr==='up'?'<span class="tr-up">&#9650;</span>':'<span class="tr-dn">&#9660;</span>')+'</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+d.m+'</td></tr>';
+    return '<tr><td><span class="rk '+rc+'">'+(i+1)+'</span></td><td style="font-weight:500">'+esc(d.d)+'</td><td>'+esc(d.t)+'</td><td>'+esc(d.p)+'</td><td class="rate '+rcls+'">'+d.r+'%</td><td><div class="pbar"><div class="pbar-f" style="width:'+d.r+'%;background:'+bc+'"></div></div></td><td>'+(d.tr==='up'?'<span class="tr-up">&#9650;</span>':'<span class="tr-dn">&#9660;</span>')+'</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(d.m)+'</td></tr>';
   }).join('');
 }
 
@@ -835,7 +842,7 @@ function renderIssues(){
   });
   document.getElementById('issCnt').textContent='共 '+f.length+' 条';
   el.innerHTML=f.map(function(i){
-    return '<div class="iss sv-'+i.sv+(i.isNew?' flash':'')+'"><div class="iss-top"><span class="iss-id">'+i.id+'</span><span class="iss-tm">'+(i.isNew?'&#9679; ':'')+i.tm+'分钟前</span></div><div class="iss-desc">'+i.ds+'</div><div class="iss-meta"><span class="tag t-dept">'+i.dp+'</span><span class="tag t-doc">'+i.doc+'</span><span class="tag t-bed">'+i.bed+'</span><span class="tag t-type">'+i.tp+'</span><span class="tag t-sv-'+i.sv+'">'+svL(i.sv)+'</span></div></div>';
+    return '<div class="iss sv-'+i.sv+(i.isNew?' flash':'')+'"><div class="iss-top"><span class="iss-id">'+esc(i.id)+'</span><span class="iss-tm">'+(i.isNew?'&#9679; ':'')+i.tm+'分钟前</span></div><div class="iss-desc">'+esc(i.ds)+'</div><div class="iss-meta"><span class="tag t-dept">'+esc(i.dp)+'</span><span class="tag t-doc">'+esc(i.doc)+'</span><span class="tag t-bed">'+esc(i.bed)+'</span><span class="tag t-type">'+esc(i.tp)+'</span><span class="tag t-sv-'+i.sv+'">'+svL(i.sv)+'</span></div></div>';
   }).join('');
 }
 
@@ -845,7 +852,7 @@ function renderFilters(){
   var types=['全部','完整性','合理性','规范性','准确性','时效性'];
   var h='<div class="flt-sec"><div class="flt-title">问题类型</div><div class="chips">'+types.map(function(t){var v=t==='全部'?'all':t;return '<span class="chip'+(v===filterT?' on':'')+'" onclick="setTF(\''+v+'\',this)">'+t+'</span>'}).join('')+'</div></div>';
   h+='<div class="flt-sec"><div class="flt-title">科室</div><select class="flt-sel" onchange="setDF(this.value)"><option value="all">全部科室</option>';
-  depts.forEach(function(d){h+='<option value="'+d.d+'"'+(filterD===d.d?' selected':'')+'>'+d.d+'</option>'});
+  depts.forEach(function(d){h+='<option value="'+esc(d.d)+'"'+(filterD===d.d?' selected':'')+'>'+esc(d.d)+'</option>'});
   h+='</select></div>';
   h+='<div class="flt-sec"><div class="flt-title">严重程度</div><div class="chips">'+['全部','严重','中等','轻微'].map(function(t){var v=t==='全部'?'all':t==='严重'?'high':t==='中等'?'med':'low';return '<span class="chip'+(v===filterS?' on':'')+'" onclick="setSF(\''+v+'\',this)">'+t+'</span>'}).join('')+'</div></div>';
   var hc=issues.filter(function(i){return i.sv==='high'}).length,mc=issues.filter(function(i){return i.sv==='med'}).length;
@@ -874,7 +881,7 @@ function renderMonitor(){
     return i.sv==='high'||i.sv==='med';
   }).slice(0,8);
   document.getElementById('monitorList').innerHTML=ml.length?ml.map(function(i,idx){
-    return '<div class="live-row" style="border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px"><span class="live-dot '+(i.sv==='high'?'err':'warn')+'"></span><span class="iss-id" style="min-width:130px">'+i.id+'</span><span style="flex:1;font-size:12px">'+i.ds.substring(0,35)+'...</span><span class="tag t-dept" style="margin-right:4px">'+i.dp+'</span><span class="tag t-sv-'+i.sv+'" style="margin-right:6px">'+svL(i.sv)+'</span><button class="btn btn-sm btn-p" onclick="confirmAlert(\''+i.id+'\')">确认</button></div>';
+    return '<div class="live-row" style="border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px"><span class="live-dot '+(i.sv==='high'?'err':'warn')+'"></span><span class="iss-id" style="min-width:130px">'+esc(i.id)+'</span><span style="flex:1;font-size:12px">'+esc(i.ds.substring(0,35))+'...</span><span class="tag t-dept" style="margin-right:4px">'+esc(i.dp)+'</span><span class="tag t-sv-'+i.sv+'" style="margin-right:6px">'+svL(i.sv)+'</span><button class="btn btn-sm btn-p" onclick="confirmAlert('+jsAttr(i.id)+')">确认</button></div>';
   }).join(''):'<div style="text-align:center;padding:30px;color:var(--text3);font-size:12px">暂无待处理预警</div>';
 }
 
@@ -898,7 +905,7 @@ function renderLedger(){
   document.getElementById('ledgerBody').innerHTML=pageItems.map(function(i,idx){
     var realIdx=start+idx;
     var st=stMap[i.st]||['未知',''];
-    return '<tr><td class="iss-id">'+i.id+'</td><td>'+i.dp+'</td><td>'+i.doc+'</td><td><span class="tag t-type">'+i.tp+'</span></td><td><span class="tag t-sv-'+i.sv+'">'+svL(i.sv)+'</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+i.ds+'">'+i.ds.substring(0,30)+'...</td><td><span class="st-badge '+st[1]+'">'+st[0]+'</span></td><td style="white-space:nowrap"><button class="btn btn-sm btn-o" onclick="reviewIssue('+realIdx+')" style="margin-right:4px">复核</button><button class="btn btn-sm btn-o" onclick="deleteIssue('+realIdx+')" style="color:var(--danger)">删除</button></td></tr>';
+    return '<tr><td class="iss-id">'+esc(i.id)+'</td><td>'+esc(i.dp)+'</td><td>'+esc(i.doc)+'</td><td><span class="tag t-type">'+esc(i.tp)+'</span></td><td><span class="tag t-sv-'+i.sv+'">'+svL(i.sv)+'</span></td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(i.ds)+'">'+esc(i.ds.substring(0,30))+'...</td><td><span class="st-badge '+st[1]+'">'+st[0]+'</span></td><td style="white-space:nowrap"><button class="btn btn-sm btn-o" onclick="reviewIssue('+realIdx+')" style="margin-right:4px">复核</button><button class="btn btn-sm btn-o" onclick="deleteIssue('+realIdx+')" style="color:var(--danger)">删除</button></td></tr>';
   }).join('');
   document.getElementById('ledgerInfo').textContent='共 '+f.length+' 条记录（总计 '+issues.length+' 条）';
   // Render pagination
@@ -979,7 +986,7 @@ function renderRules(){
   document.getElementById('ruleTable').innerHTML=rules.map(function(r,idx){
     var sc=r.sv==='high'?'t-sv-high':r.sv==='med'?'t-sv-med':'t-sv-low';
     var on=r.on!==false;
-    return '<tr><td style="font-weight:500">'+r.n+'</td><td style="font-size:11px;color:var(--text2)">'+r.c+'</td><td><span class="tag '+sc+'">'+svL(r.sv)+'</span></td><td style="font-family:monospace;font-size:11px">'+r.v+'</td><td style="white-space:nowrap"><label class="toggle" style="margin-right:6px;vertical-align:middle"><input type="checkbox"'+(on?' checked':'')+' onchange="toggleRuleSwitch('+idx+',this)"><span class="slider"></span></label><button class="btn btn-sm btn-o" onclick="editRule('+idx+')">编辑</button></td></tr>';
+    return '<tr><td style="font-weight:500">'+esc(r.n)+'</td><td style="font-size:11px;color:var(--text2)">'+esc(r.c)+'</td><td><span class="tag '+sc+'">'+svL(r.sv)+'</span></td><td style="font-family:monospace;font-size:11px">'+esc(r.v)+'</td><td style="white-space:nowrap"><label class="toggle" style="margin-right:6px;vertical-align:middle"><input type="checkbox"'+(on?' checked':'')+' onchange="toggleRuleSwitch('+idx+',this)"><span class="slider"></span></label><button class="btn btn-sm btn-o" onclick="editRule('+idx+')">编辑</button></td></tr>';
   }).join('');
 }
 function saveRuleConfig(){
@@ -989,7 +996,7 @@ function saveRuleConfig(){
 // ===== Users Page =====
 function editUser(idx){
   var u=users[idx];
-  var body='<div class="mf-label">姓名</div><input class="mf-input" id="editUserName" value="'+u.n+'">';
+  var body='<div class="mf-label">姓名</div><input class="mf-input" id="editUserName" value="'+esc(u.n)+'">';
   body+='<div class="mf-row"><div><div class="mf-label">科室</div><select class="mf-input" id="editUserDept">';
   ['医务科','骨科','心血管内科','神经内科','普通外科','内分泌科','妇产科','儿科','呼吸与危重症医学科'].forEach(function(d){
     body+='<option'+(d===u.d?' selected':'')+'>'+d+'</option>';
@@ -1018,7 +1025,7 @@ function saveUserEdit(idx){
 }
 function deleteUser(idx){
   var u=users[idx];
-  var body='<div class="mf-detail"><b>'+u.n+'</b> · '+u.d+' · '+u.r+'</div><p style="font-size:12px;color:var(--danger)">确认删除此用户？该用户将无法登录系统。</p>';
+  var body='<div class="mf-detail"><b>'+esc(u.n)+'</b> · '+esc(u.d)+' · '+esc(u.r)+'</div><p style="font-size:12px;color:var(--danger)">确认删除此用户？该用户将无法登录系统。</p>';
   var footer='<button class="btn btn-o" onclick="closeModal()">取消</button><button class="btn btn-p" style="background:var(--danger);border-color:var(--danger)" onclick="confirmDeleteUser('+idx+')">确认删除</button>';
   openModal('删除用户',body,footer);
 }
@@ -1030,7 +1037,7 @@ function confirmDeleteUser(idx){
 }
 function renderUsers(){
   document.getElementById('userBody').innerHTML=users.map(function(u,idx){
-    return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">'+u.n.charAt(0)+'</div><span style="font-weight:500">'+u.n+'</span></div></td><td>'+u.d+'</td><td><span class="tag '+(u.r==='管理员'?'t-sv-high':u.r==='质控员'?'t-dept':'t-type')+'">'+u.r+'</span></td><td style="font-size:11px;color:var(--text2)">'+u.p+'</td><td style="font-size:11px;color:var(--text3)">'+u.lt+'</td><td><label class="toggle"><input type="checkbox"'+(u.on?' checked':'')+' onchange="toggleUser('+idx+')"><span class="slider"></span></label></td><td style="white-space:nowrap"><button class="btn btn-sm btn-o" onclick="editUser('+idx+')" style="margin-right:3px">编辑</button><button class="btn btn-sm btn-o" onclick="deleteUser('+idx+')" style="color:var(--danger)">删除</button></td></tr>';
+    return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:28px;height:28px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600">'+esc(u.n.charAt(0))+'</div><span style="font-weight:500">'+esc(u.n)+'</span></div></td><td>'+esc(u.d)+'</td><td><span class="tag '+(u.r==='管理员'?'t-sv-high':u.r==='质控员'?'t-dept':'t-type')+'">'+esc(u.r)+'</span></td><td style="font-size:11px;color:var(--text2)">'+esc(u.p)+'</td><td style="font-size:11px;color:var(--text3)">'+esc(u.lt)+'</td><td><label class="toggle"><input type="checkbox"'+(u.on?' checked':'')+' onchange="toggleUser('+idx+')"><span class="slider"></span></label></td><td style="white-space:nowrap"><button class="btn btn-sm btn-o" onclick="editUser('+idx+')" style="margin-right:3px">编辑</button><button class="btn btn-sm btn-o" onclick="deleteUser('+idx+')" style="color:var(--danger)">删除</button></td></tr>';
   }).join('');
   var uc=document.getElementById('userCount');if(uc)uc.textContent='共 '+users.length+' 个用户';
 }
